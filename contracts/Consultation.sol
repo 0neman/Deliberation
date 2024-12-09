@@ -46,11 +46,12 @@ contract Consultations {
         uint32 startTime;
         uint32 endTime;
         Student[] students;
+        Vote[] votes;
     }
 
     struct Vote {
-        Teacher teacher;
-        Student student;
+        address teacher;
+        uint32 student;
         Choices choice;
     }
 
@@ -79,11 +80,22 @@ contract Consultations {
         string memory title,
         bool isClosed,
         uint32 startTime,
-        uint32 endTime
+        uint32 endTime,
+        Student[] calldata student,
+        Vote[] calldata votes
     ) public {
-        Student[] memory student;
         consultations.push(
-            Consultation(title, isClosed, startTime, endTime, student)
+            Consultation(title, isClosed, startTime, endTime, student, votes)
+        );
+    }
+
+    function _voting(
+        uint32 idStudent,
+        address idTeacher,
+        Choices choice
+    ) private {
+        consultations[consultations.length - 1].votes.push(
+            Vote(idTeacher, idStudent, choice)
         );
     }
 }
