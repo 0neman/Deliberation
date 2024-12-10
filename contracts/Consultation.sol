@@ -36,7 +36,7 @@ contract Consultations {
     }
 
     struct Teacher {
-        address id;
+        uint32 id;
         string name;
     }
 
@@ -45,34 +45,38 @@ contract Consultations {
         bool isClosed;
         uint32 startTime;
         uint32 endTime;
-        Student[] students;
-        Vote[] votes;
     }
 
     struct Vote {
-        address teacher;
+        uint32 teacher;
         uint32 student;
         Choices choice;
     }
 
-    Teacher[] teachers;
-    Consultation[] consultations;
+    mapping(uint => mapping(uint => Student)) public students;
+    mapping(uint => mapping(uint => Vote)) public votes;
+    Teacher[] public teachers;
+    Consultation[] public consultations;
 
     function addNewStudent(
         string memory name,
         uint32 id,
-        uint consultation,
-        Grades level,
+        uint consultationId,
+        uint level,
         uint16 credit,
         uint16 mark
     ) public {
-        consultations[consultation].students.push(
-            Student(name, id, level, credit, mark)
+        students[id][consultationId] = Student(
+            name,
+            id,
+            Grades(level),
+            credit,
+            mark
         );
-        emit StudentCreated(name, id, level, credit, mark);
+        emit StudentCreated(name, id, Grades(level), credit, mark);
     }
 
-    function addNewTeacher(address id, string memory name) public {
+    function addNewTeacher(uint32 id, string memory name) public {
         teachers.push(Teacher(id, name));
     }
 
@@ -80,22 +84,23 @@ contract Consultations {
         string memory title,
         bool isClosed,
         uint32 startTime,
-        uint32 endTime,
-        Student[] calldata student,
-        Vote[] calldata votes
+        uint32 endTime
     ) public {
-        consultations.push(
-            Consultation(title, isClosed, startTime, endTime, student, votes)
-        );
+        startTime = uint32(block.timestamp);
+        endTime = uint32(block.timestamp) + 5000;
+        consultations.push(Consultation(title, isClosed, startTime, endTime));
     }
 
     function _voting(
         uint32 idStudent,
-        address idTeacher,
-        Choices choice
-    ) private {
-        consultations[consultations.length - 1].votes.push(
-            Vote(idTeacher, idStudent, choice)
+        uint consultationId,
+        uint32 idTeacher,
+        uint choice
+    ) public {
+        votes[uint(block.timestamp)][consultationId] = Vote(
+            idTeacher,
+            idStudent,
+            Choices(choice)
         );
     }
 }
