@@ -10,6 +10,20 @@ contract Consultations {
         uint16 mark
     );
 
+    event consultationCreated(
+        string title,
+        bool isClosed,
+        uint32 startTime,
+        uint32 endTime
+    );
+
+    event voted(
+        uint32 idStudent,
+        uint consultationId,
+        uint32 idTeacher,
+        uint choice
+    );
+
     enum Choices {
         Sure,
         FairlyConfident,
@@ -53,10 +67,11 @@ contract Consultations {
         Choices choice;
     }
 
-    mapping(uint => mapping(uint => Student)) public students;
+    Student[] public students;
     mapping(uint => mapping(uint => Vote)) public votes;
     Teacher[] public teachers;
     Consultation[] public consultations;
+    uint vote;
 
     function addNewStudent(
         string memory name,
@@ -66,13 +81,13 @@ contract Consultations {
         uint16 credit,
         uint16 mark
     ) public {
-        students[id][consultationId] = Student(
-            name,
-            id,
-            Grades(level),
-            credit,
-            mark
+        require(
+            consultations.length > 0 &&
+                !consultations[consultationId].isClosed &&
+                credit < 300 &&
+                level < 4
         );
+        students.push(Student(name, id, Grades(level), credit, mark));
         emit StudentCreated(name, id, Grades(level), credit, mark);
     }
 
@@ -82,25 +97,50 @@ contract Consultations {
 
     function createNewConsultation(
         string memory title,
-        bool isClosed,
         uint32 startTime,
         uint32 endTime
     ) public {
         startTime = uint32(block.timestamp);
         endTime = uint32(block.timestamp) + 5000;
-        consultations.push(Consultation(title, isClosed, startTime, endTime));
+        consultations.push(
+            Consultation(
+                title,
+                startTime <= block.timestamp,
+                startTime,
+                endTime
+            )
+        );
+        emit consultationCreated(
+            title,
+            startTime <= block.timestamp,
+            endTime,
+            endTime
+        );
     }
 
     function _voting(
         uint32 idStudent,
         uint consultationId,
+        uint voteId,
         uint32 idTeacher,
         uint choice
     ) public {
-        votes[uint(block.timestamp)][consultationId] = Vote(
+        require(choice > 4 && !consultations[consultationId].isClosed);
+        votes[consultationId][voteId] = Vote(
             idTeacher,
             idStudent,
             Choices(choice)
         );
+        emit voted(idStudent, consultationId, idTeacher, choice);
+    }
+
+    function getStudentVotes(uint consultationId) public view returns (uint) {
+        uint sum = 0;
+        for (uint i = 0; i < students.length; i++) {
+            if (votes[consultationId][i].student == students[i].id) {
+                sum = sum + uint(votes[consultationId][i].choice);
+            }
+        }
+        return sum;
     }
 }
